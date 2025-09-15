@@ -15,19 +15,44 @@
 - src/utils/constants.ts — файл с константами
 - src/utils/utils.ts — файл с утилитами
 
+### Структура проекта (затронутые файлы)
+
+```
+src/
+├── ... 
+├── main.ts                 — точка входа приложения
+├── types/
+│   └── index.ts            — типы данных
+├── utils/
+│   ├── constants.ts        — константы
+│   └── utils.ts            — утилиты
+├── components/
+│   ├── base/               — базовые классы
+│   │   ├── Component.ts
+│   │   ├── Api.ts
+│   │   └── Events.ts
+│   ├── Models/             — модели данных
+│   │   ├── ProductCatalog.ts
+│   │   ├── ShoppingCart.ts
+│   │   └── Buyer.ts
+│   └── Api/
+│       └── LarekAPI.ts     — коммуникационный слой
+└── ... 
+```
+
 ## Установка и запуск
 Для установки и запуска проекта необходимо выполнить команды
 
 ```
 npm install
-npm run start
+npm run dev
 ```
 
 или
 
 ```
 yarn
-yarn start
+yarn dev
 ```
 ## Сборка
 
@@ -47,11 +72,17 @@ yarn build
 
 Код приложения разделен на слои согласно парадигме MVP (Model-View-Presenter), которая обеспечивает четкое разделение ответственности между классами слоев Model и View. Каждый слой несет свой смысл и ответственность:
 
-Model - слой данных, отвечает за хранение и изменение данных.  
+Model - слой данных, отвечает за хранение и изменение данных. Включает:
+- ProductCatalog — каталог товаров
+- ShoppingCart — корзина покупок
+- Buyer — данные покупателя
+- LarekAPI — слой коммуникации с сервером  
+
 View - слой представления, отвечает за отображение данных на странице.  
-Presenter - презентер содержит основную логику приложения и  отвечает за связь представления и данных.
+Presenter - презентер содержит основную логику приложения и отвечает за связь представления и данных.
 
 Взаимодействие между классами обеспечивается использованием событийно-ориентированного подхода. Модели и Представления генерируют события при изменении данных или взаимодействии пользователя с приложением, а Презентер обрабатывает эти события используя методы как Моделей, так и Представлений.
+На данном этапе реализован полный слой Model — независимый, тестируемый, готовый к интеграции с UI.
 
 ### Базовый код
 
@@ -91,10 +122,162 @@ Presenter - презентер содержит основную логику п
 Конструктор класса не принимает параметров.
 
 Поля класса:  
-`_events: Map<string | RegExp, Set<Function>>)` -  хранит коллекцию подписок на события. Ключи коллекции - названия событий или регулярное выражение, значения - коллекция функций обработчиков, которые будут вызваны при срабатывании события.
+`_events: Map<string | RegExp, Set<Function>>)` - хранит коллекцию подписок на события. Ключи коллекции - названия событий или регулярное выражение, значения - коллекция функций обработчиков, которые будут вызваны при срабатывании события.
 
 Методы класса:  
 `on<T extends object>(event: EventName, callback: (data: T) => void): void` - подписка на событие, принимает название события и функцию обработчик.  
 `emit<T extends object>(event: string, data?: T): void` - инициализация события. При вызове события в метод передается название события и объект с данными, который будет использован как аргумент для вызова обработчика.  
 `trigger<T extends object>(event: string, context?: Partial<T>): (data: T) => void` - возвращает функцию, при вызове которой инициализируется требуемое в параметрах событие с передачей в него данных из второго параметра.
 
+### Слой Model
+
+#### ProductCatalog — каталог товаров
+
+Ответственность:
+
+- Хранит массив всех товаров.
+- Хранит выбранный товар для детального просмотра.
+
+Методы:
+
+`setProducts(products: IProduct[])` — сохраняет массив товаров.  
+`getProducts(): IProduct[]` — возвращает копию массива.  
+`getProductById(id: string): IProduct | undefined` — поиск по ID.  
+`setSelectedProduct(product: IProduct)` — устанавливает выбранный товар.  
+`getSelectedProduct(): IProduct | null` — возвращает выбранный товар.  
+
+#### ShoppingCart — корзина покупок
+
+Ответственность:
+
+- Хранит товары, выбранные пользователем.
+
+Методы:
+
+`getItems(): IProduct[]` — возвращает товары в корзине.  
+`addItem(product: IProduct)` — добавляет товар.  
+`removeItem(id: string)` — удаляет товар по ID.  
+`clear()` — очищает корзину.  
+`getTotalPrice(): number` — возвращает общую стоимость.  
+`getItemCount(): number` — возвращает количество товаров.  
+`hasItem(id: string): boolean` — проверяет наличие товара по ID.  
+
+#### Buyer — данные покупателя
+
+Ответственность:
+
+- Хранит: способ оплаты, email, телефон, адрес.
+
+Методы:
+
+`setAllData(data: IBuyer)` — устанавливает все данные.  
+`getData(): IBuyer` — возвращает данные (бросает ошибку, если не заполнены).  
+`clear()` — очищает все поля.  
+`validate()` — возвращает {isValid: boolean, errors: string[]}.  
+
+Отдельные сеттеры:
+`set payment(value: TPayment)` — возвращает метод оплаты.  
+`set address(value: string)` — возвращает адрес.  
+`set phone(value: string)` — возвращает номер телефона.  
+`set email(value: string)` — возвращает адрес электронной почты.  
+
+#### Коммуникационный слой — LarekAPI
+
+Ответственность:
+
+- Получение товаров с сервера.
+- Отправка заказа на сервер.
+
+Использует композицию — принимает в конструкторе api: IApi.
+
+Методы:
+
+`getProducts(): Promise<IProduct[]>` — GET /product  
+`sendOrder(order: IOrderRequest): Promise<IOrderResponse>` — POST /order  
+
+### Типы данных
+
+Описаны в файле types/index.ts, расширены типы из стартера.
+
+```
+export type TPayment = 'card' | 'cash';
+
+export interface IProduct {
+  id: string;
+  description: string;
+  image: string;
+  title: string;
+  category: string;
+  price: number | null;
+}
+
+export interface IBuyer {
+  payment: TPayment;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+export interface IOrderRequest {
+  payment: TPayment;
+  email: string;
+  phone: string;
+  address: string;
+  total: number;
+  items: string[];
+}
+
+export interface IOrderResponse {
+  id: string;
+  total: number;
+}
+```
+
+### Тестирование в main.ts
+
+В main.ts выполняется:
+
+- Создание экземпляров всех классов.
+
+```
+const catalog = new ProductCatalog();
+const cart = new ShoppingCart();
+const buyer = new Buyer();
+const api = new Api(API_URL);
+const larekApi = new LarekAPI(api);
+```
+- Тестирование всех методов моделей через вызовы и console.log.  
+    - `catalog.setProducts(apiProducts.items)` → `catalog.getProducts()` → вывод в консоль.  
+  - `catalog.getProductById(id)` → поиск первого товара → вывод в консоль.  
+  - `catalog.setSelectedProduct()` → `getSelectedProduct()` → вывод в консоль.  
+  - `cart.addItem()` → `getItems()` → вывод в консоль.  
+  - `cart.hasItem()`, `getTotalPrice()`, `getItemCount()` — протестированы и выведены.  
+  - `cart.removeItem()` → повторный вывод содержимого корзины.  
+  - `buyer.setAllData(testBuyerData)` → `getData()` → вывод.  
+- Обновление через сеттеры → вывод.
+    - `validate()` — успешная и с ошибками → вывод.
+    - `buyer.clear()` → попытка `getData()` → перехват ошибки → вывод сообщения.
+
+
+- Запрос к серверу за товарами.
+  Все операции сопровождаются подписанными выводами в консоль для наглядности и проверки.
+```
+larekApi.getProducts().then(products => {
+  productCatalog.setProducts(products);
+  console.log('Товары в каталоге после загрузки:', productCatalog.getProducts());
+});
+```
+
+- Сохранение товаров в ProductCatalog.
+- Вывод результата в консоль.
+
+Тесты проверяют:
+
+- Сохранение/получение товаров.
+- Поиск по ID.
+- Работу с выбранным товаром.
+- Добавление/удаление в корзине.
+- Подсчёт суммы и количества.
+- Валидацию и очистку данных покупателя.
+- Обработку ошибок (например, при вызове getData() после clear()).
+- Асинхронную загрузку с сервера и сохранение в модель.
