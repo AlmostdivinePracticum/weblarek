@@ -6,27 +6,34 @@ export class Buyer {
     private _phone: string = '';
     private _email: string = '';
 
+    constructor(private events: IEvents) {}
+
     setAllData(data: IBuyer): void {
         this._payment = data.payment;
         this._address = data.address;
         this._phone = data.phone;
         this._email = data.email;
+        this.events.emit('buyer:changed');
     }
 
     set payment(value: TPayment) {
         this._payment = value;
+        this.events.emit('buyer:changed');
     }
 
     set address(value: string) {
         this._address = value;
+        this.events.emit('buyer:changed');
     }
 
     set phone(value: string) {
         this._phone = value;
+        this.events.emit('buyer:changed');
     }
 
     set email(value: string) {
         this._email = value;
+        this.events.emit('buyer:changed');
     }
 
     getData(): IBuyer {

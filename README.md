@@ -1,14 +1,23 @@
 # Проектная работа "Веб-ларек"
 
 **Стек**: HTML, SCSS, TypeScript, Vite  
+  
 **Архитектура**: MVP (Model-View-Presenter)  
-**Состояние**: Реализован слой Model (часть 1)  
+- Model — управляет данными и бизнес-логикой
+- View — отвечает за отображение данных, не содержит логики
+- Presenter — посредник между Model и View, обрабатывает события и управляет потоком данных  
+  
+**Состояние**: 
+- Реализован слой Model
+- Реализован слой View
+- Реализован слой Presenter
 
 ### Структура проекта (затронутые файлы)
 
 - src/ — исходные файлы проекта
 - src/components/ — папка с JS компонентами
 - src/components/base/ — папка с базовым кодом
+- src/components/views/ — папка с вью
 
 ```
 src/
@@ -19,6 +28,8 @@ src/
 ├── utils/
 │   ├── constants.ts        — константы
 │   └── utils.ts            — утилиты
+├── presenter/
+│   └── AppPresenter.ts     — презентер        
 ├── components/
 │   ├── base/               — базовые классы
 │   │   ├── Component.ts
@@ -28,6 +39,13 @@ src/
 │   │   ├── ProductCatalog.ts
 │   │   ├── ShoppingCart.ts
 │   │   └── Buyer.ts
+│   ├── views/              — вьюшки
+│   │   ├── cards/          — папка в вью карточек
+│   │   ├── forms/          — папка в вью форм
+│   │   ├── BasketView.ts
+│   │   ├── Gallery.ts
+│   │   ├── ModalView.ts
+│   │   └── SuccessView.ts
 │   └── Api/
 │       └── LarekAPI.ts     — коммуникационный слой
 └── ... 
@@ -40,6 +58,7 @@ src/
 - src/scss/styles.scss — корневой файл стилей
 - src/utils/constants.ts — файл с константами
 - src/utils/utils.ts — файл с утилитами
+- src/presenter/AppPresenter.ts - файл с реализацией презентера
 
 ## Установка и запуск
 Для установки и запуска проекта необходимо выполнить команды
@@ -282,39 +301,170 @@ export interface IOrderResponse {
 - `sendOrder(order: IOrderRequest): Promise<IOrderResponse>` — POST /order  
 
 
+### Компоненты слоя View
+#### Базовые классы:
+##### Component\<T\> (`src/components/base/Component.ts`)
+Базовый абстрактный класс для всех компонентов представления.  
+Ответственность: инкапсуляция работы с DOM.  
 
-### Тестирование 
+Методы:
+- `render(data?: Partial<T>)` — основной метод отображения  
+- `setText(element: HTMLElement, value: string)` — установка текстового содержимого  
+- `setImage(element: HTMLImageElement, src: string, alt?: string)` — работа с изображениями  
+- `setDisabled(element: HTMLElement, state: boolean)` — управление состоянием disabled  
+- `toggleClass(element: HTMLElement, className: string, force?: boolean)` — работа с CSS-классами  
 
-В main.ts выполняется:
+##### FormView\<T\> (`src/components/views/forms/FormView.ts`)
+Базовый класс для всех форм.  
+Наследники: `OrderForm`, `ContactsForm`  
+Ответственность: общая логика форм (обработка submit, управление кнопкой отправки, отображение ошибок).  
+Методы:  
+- `set valid(value: boolean)` — управление состоянием кнопки отправки  
+- `set errors(value: string)` — отображение сообщений об ошибках  
 
-- Создание экземпляров всех классов.
+##### CardView (`src/components/views/cards/CardView.ts`)
+Базовый класс для всех карточек товаров.  
+Наследники: `CardCatalog`, `CardPreview`, `CardBasket`.
+Ответственность: общая логика отображения карточек (заголовок, изображение, категория, цена).  
 
-```
-const catalog = new ProductCatalog();
-const cart = new ShoppingCart();
-const buyer = new Buyer();
-const api = new Api(API_URL);
-const larekApi = new LarekAPI(api);
-```
-- Тестирование всех методов моделей и вывод результатов в console.log:  
+#### Конкретные компоненты: 
+##### Gallery (`src/components/views/Gallery.ts`)  
+Шаблон: используется контейнер .gallery из index.html  
+Ответственность: отображение списка карточек товаров в каталоге.  
+Свойства:  
+- `items: HTMLElement[]` — массив карточек для отображения  
 
-  - `catalog.setProducts(apiProducts.items)` → `catalog.getProducts()` → вывод в консоль.  
-  - `catalog.getProductById(id)` → поиск первого товара → вывод в консоль.  
-  - `catalog.setSelectedProduct()` → `getSelectedProduct()` → вывод в консоль.  
-  - `cart.addItem()` → `getItems()` → вывод в консоль.  
-  - `cart.hasItem()`, `getTotalPrice()`, `getItemCount()` — протестированы и выведены.  
-  - `cart.removeItem()` → повторный вывод содержимого корзины.  
-  - `buyer.setAllData(testBuyerData)` → `getData()` → вывод.  
-  - Обновление через сеттеры → вывод.
-  - `validate()` — успешная и с ошибками → вывод.
-  - `buyer.clear()` → попытка `getData()` → перехват ошибки → вывод сообщения.
+##### CardCatalog (`src/components/views/cards/CardCatalog.ts`)
+Шаблон: #card-catalog.  
+Ответственность: карточка товара в каталоге.  
+Особенности:  
+- Вся карточка является кликабельной областью
+- При клике генерирует событие card:select
+- Отображает цену как «Бесценно» при `price: null`
 
 
-- Запрос к серверу за товарами:
-  Все операции сопровождаются подписанными выводами в консоль для наглядности и проверки.
-```
-larekApi.getProducts().then(products => {
-  productCatalog.setProducts(products);
-  console.log('Товары в каталоге после загрузки:', productCatalog.getProducts());
-});
-```
+##### CardPreview (`src/components/views/cards/CardPreview.ts`)
+Шаблон: #card-preview  
+Ответственность: детальный просмотр товара в модальном окне  
+Особенности:  
+- Содержит кнопку «Купить»/«Удалить из корзины»/«Недоступно»
+- При клике на кнопку генерирует соответствующие события
+- После действия автоматически закрывает модальное окно
+
+##### CardBasket (`src/components/views/cards/CardBasket.ts`)
+Шаблон: #card-basket  
+Ответственность: элемент товара в корзине  
+Особенности:  
+- Отображает порядковый номер товара
+- Содержит кнопку удаления
+- При клике на кнопку генерирует событие `basket:remove`
+
+##### BasketView (src/components/views/BasketView.ts)
+Шаблон: #basket  
+Ответственность: модальное окно корзины  
+Свойства:  
+- `items: HTMLElement[]` — список товаров в корзине
+- `total: number` — общая сумма
+- `buttonDisabled: boolean` — состояние кнопки «Оформить»
+- `isEmpty: boolean` — признак пустой корзины (отображает «Корзина пуста»)
+
+##### OrderForm (`src/components/views/forms/OrderForm.ts`)
+Шаблон: #order  
+Ответственность: форма выбора способа оплаты и адреса доставки  
+Особенности:  
+- Валидация в реальном времени
+- Отображение ошибок при пустых полях
+- Управление активностью кнопки «Далее»
+
+##### ContactsForm (`src/components/views/forms/ContactsForm.ts`)
+Шаблон: #contacts  
+Ответственность: форма ввода контактных данных  
+Особенности:  
+- Валидация email и телефона по формату
+- Отображение ошибок при некорректных данных
+- Управление активностью кнопки «Оплатить»
+
+##### SuccessView (`src/components/views/SuccessView.ts`)
+Шаблон: #success  
+Ответственность: окно успешного оформления заказа  
+Особенности:  
+- Отображает итоговую сумму списания
+- При клике на кнопку генерирует событие `success:close`
+
+##### ModalView (`src/components/views/ModalView.ts`)
+Шаблон: .modal (уже в DOM)  
+Ответственность: управление модальным окном  
+Особенности:   
+- Не наследуется другими классами
+- Управляет видимостью через класс `modal_active`
+- Обрабатывает закрытие по кнопке «X» и клику вне модалки
+
+### Слой Презентера
+
+AppPresenter (`src/presenter/AppPresenter.ts`)
+
+Ответственность: координация взаимодействия между Model и View.
+
+Основные функции:
+- Подписка на события от Model и View
+- Обработка действий пользователя
+- Обновление данных в Model
+- Обновление состояния View
+- Управление модальными окнами
+- Валидация данных перед отправкой на сервер
+
+#### Обрабатываемые события:
+
+##### От моделей:
+
+- `catalog:changed` — обновление каталога товаров
+- `catalog:selected` — выбор товара для просмотра
+- `cart:changed` — изменение содержимого корзины
+- `buyer:changed` — изменение данных покупателя
+
+##### От представлений:
+
+- `card:select` — выбор карточки в каталоге
+- `card:add-to-cart` — добавление товара в корзину
+- `card:remove-from-cart` — удаление товара из корзины
+- `header:basket-click` — открытие корзины
+- `basket:order` — начало оформления заказа
+- `order:payment` — выбор способа оплаты
+- `order:address` — изменение адреса доставки
+- `contacts:change` — изменение контактных данных
+- `OrderForm:submit` — отправка формы заказа
+- `ContactsForm:submit` — отправка формы контактов
+- `success:close` — закрытие окна успеха
+
+##### Особенности реализации:
+- Использует инверсию зависимостей — все зависимости передаются через конструктор
+- Обеспечивает полную изоляцию слоёв
+- Обрабатывает ошибки при работе с API
+- Фильтрует недоступные товары (`price: null`) при отправке заказа
+- Обеспечивает валидацию данных на всех этапах
+
+#### События приложений
+
+| Событие               | Источник         | Назначение                             |
+|-----------------------|------------------|----------------------------------------|
+| `catalog:changed`     | `ProductCatalog` | Обновление каталога товаров            |
+| `catalog:selected`    | `ProductCatalog` | Выбор товара для детального просмотра  |
+| `cart:changed`        | `ShoppingCart`   | Изменение содержимого корзины          |
+| `buyer:changed`       | `Buyer`           | Изменение данных покупателя            |
+| `card:select`         | `CardCatalog`     | Клик по карточке в каталоге            |
+| `card:add-to-cart`    | `CardPreview`     | Добавление товара в корзину            |
+| `card:remove-from-cart` | `CardPreview`     | Удаление товара из корзины             |
+| `header:basket-click` | `main.ts`         | Клик по иконке корзины в хедере        |
+| `basket:remove`       | `CardBasket`      | Удаление товара из корзины (из списка) |
+| `basket:order`        | `BasketView`      | Нажатие кнопки «Оформить»              |
+| `order:payment`       | `OrderForm`       | Выбор способа оплаты                   |
+| `order:address`        | `OrderForm`       | Изменение адреса доставки              |
+| `contacts:change`      | `ContactsForm`     | Изменение контактных данных            |
+| `OrderForm:submit`     | `OrderForm`        | Отправка формы заказа|
+| `ContactsForm:submit`  | `ContactsForm`     | Отправка формы контактов |
+| `success:close` | `SuccessView` | Закрытие окна успеха |
+| `modal:close` |  `CardPreview` | Закрытие модального окна после действия | 
+
+
+
+

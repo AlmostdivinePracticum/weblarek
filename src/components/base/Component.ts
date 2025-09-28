@@ -8,6 +8,24 @@ export abstract class Component<T> {
 
     // Инструментарий для работы с DOM в дочерних компонентах
 
+    // Установить текстовое содержимое элемента
+    protected setText(element: HTMLElement, value: string) {
+        if (element) {
+            element.textContent = String(value);
+        }
+    }
+
+    // Установить/снять disabled
+    protected setDisabled(element: HTMLElement, state: boolean) {
+        if (element) {
+            if (state) {
+                element.setAttribute('disabled', 'disabled');
+            } else {
+                element.removeAttribute('disabled');
+            }
+        }
+    }
+
     // Установить изображение с альтернативным текстом
     protected setImage(element: HTMLImageElement, src: string, alt?: string) {
         if (element) {
@@ -15,6 +33,13 @@ export abstract class Component<T> {
             if (alt) {
                 element.alt = alt;
             }
+        }
+    }
+
+    // Переключить CSS-класс
+    protected toggleClass(element: HTMLElement, className: string, force?: boolean) {
+        if (element) {
+            element.classList.toggle(className, force);
         }
     }
 
