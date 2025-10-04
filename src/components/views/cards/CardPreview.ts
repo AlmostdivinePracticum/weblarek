@@ -23,7 +23,7 @@ export class CardPreview extends CardView {
             } else {
                 this.events.emit('card:add-to-cart', { id: this._id });
             }
-            this.events.emit('modal:close');
+            this.events.emit('card:close');
         });
     }
 
@@ -56,7 +56,7 @@ export class CardPreview extends CardView {
     }
 
     private updateButton() {
-        if (this._productPrice === null) { // ← используем _productPrice
+        if (this._productPrice === null) {
             this.setText(this._button, 'Недоступно');
             this.setDisabled(this._button, true);
         } else if (this._inCart) {

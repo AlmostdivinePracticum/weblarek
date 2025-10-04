@@ -1,4 +1,5 @@
 import { IBuyer, TPayment } from '../../types';
+import { IEvents } from '../base/Events';
 
 export class Buyer {
     private _payment: TPayment | null = null;
@@ -7,6 +8,23 @@ export class Buyer {
     private _email: string = '';
 
     constructor(private events: IEvents) {}
+
+    // Геттеры
+    get payment(): TPayment | null {
+        return this._payment;
+    }
+
+    get address(): string {
+        return this._address;
+    }
+
+    get phone(): string {
+        return this._phone;
+    }
+
+    get email(): string {
+        return this._email;
+    }
 
     setAllData(data: IBuyer): void {
         this._payment = data.payment;
@@ -55,7 +73,15 @@ export class Buyer {
         this._email = '';
     }
 
-    validate(): { isValid: boolean; errors: string[] } {
+    private isValidEmail(email: string): boolean {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    }
+
+    private isValidPhone(phone: string): boolean {
+        return /^\+?[\d\s\-\(\)]{10,}$/.test(phone.trim());
+    }
+
+    validate() {
         const errors: string[] = [];
 
         if (!this._payment) {
@@ -68,19 +94,25 @@ export class Buyer {
 
         if (!this._phone.trim()) {
             errors.push('Телефон не указан');
-        } else if (!/^\+?[\d\s\-\(\)]{10,}$/.test(this._phone)) {
+        } else if (!this.isValidPhone(this._phone)) {
             errors.push('Некорректный формат телефона');
         }
 
         if (!this._email.trim()) {
             errors.push('Email не указан');
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this._email)) {
+        } else if (!this.isValidEmail(this._email)) {
             errors.push('Некорректный формат email');
         }
 
         return {
             isValid: errors.length === 0,
             errors,
+            fields: {
+                payment: this._payment !== null,
+                address: this._address.trim() !== '',
+                email: this.isValidEmail(this._email),
+                phone: this.isValidPhone(this._phone)
+            }
         };
     }
 }

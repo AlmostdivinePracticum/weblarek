@@ -3,85 +3,70 @@ import { IBuyer } from '../../../types';
 import { IEvents } from '../../base/Events';
 
 export class OrderForm extends FormView<IBuyer> {
-    protected _paymentButtons: HTMLButtonElement[];
+    protected _buttonCard: HTMLButtonElement;
+    protected _buttonCash: HTMLButtonElement;
     protected _address: HTMLInputElement;
     protected _errors: HTMLElement;
-    private _currentPayment: 'card' | 'cash' | null = null;
-    private _currentAddress: string = '';
 
     constructor(container: HTMLElement, events: IEvents) {
         super(container, events);
-        this._paymentButtons = Array.from(container.querySelectorAll('.order__buttons .button_alt'));
-        this._address = container.querySelector('.form__input')!;
+        this._buttonCard = container.querySelector('button[name="card"]')!;
+        this._buttonCash = container.querySelector('button[name="cash"]')!;
+        this._address = container.querySelector('input[name="address"]')!;
         this._errors = container.querySelector('.form__errors')!;
 
-        this._paymentButtons.forEach(button => {
-            button.addEventListener('click', (event) => {
-                event.preventDefault();
-                const payment = button.getAttribute('name') as 'card' | 'cash';
-                if (payment) {
-                    this._currentPayment = payment;
-                    this.events.emit('order:payment', { payment });
+        this._buttonCard.addEventListener('click', () => {
+            this.events.emit('order:payment', { payment: 'card' });
+            this.toggleCard(true);
+            this.toggleCash(false);
+        });
 
-                    this._paymentButtons.forEach(btn => {
-                        btn.classList.toggle('button_alt-active', btn === button);
-                    });
-                    this.validate();
-                }
-            });
+        this._buttonCash.addEventListener('click', () => {
+            this.events.emit('order:payment', { payment: 'cash' });
+            this.toggleCard(false);
+            this.toggleCash(true);
         });
 
         this._address.addEventListener('input', () => {
-            this._currentAddress = this._address.value;
-            this.events.emit('order:address', { address: this._currentAddress });
-            this.validate();
+            this.events.emit('order:address', { address: this._address.value });
         });
     }
 
-    private validate() {
-        const errors: string[] = [];
-
-        if (this._currentPayment === null) {
-            errors.push('Выберите способ оплаты');
-        }
-
-        if (this._currentAddress.trim() === '') {
-            errors.push('Укажите адрес доставки');
-        }
-
-        this.errors = errors.join('<br>');
-        this.valid = errors.length === 0;
+    toggleCard(state: boolean = true) {
+        this.toggleClass(this._buttonCard, 'button_alt-active', state);
     }
 
-    set payment(value: 'card' | 'cash') {
-        this._currentPayment = value;
-        this._paymentButtons.forEach(btn => {
-            const btnName = btn.getAttribute('name');
-            if (btnName === value) {
-                btn.classList.add('button_alt-active');
-            } else {
-                btn.classList.remove('button_alt-active');
-            }
-        });
-        this.validate();
+    toggleCash(state: boolean = true) {
+        this.toggleClass(this._buttonCash, 'button_alt-active', state);
     }
 
     set address(value: string) {
-        this._currentAddress = value;
         this._address.value = value;
-        this.validate();
     }
 
     set addressValid(valid: boolean) {
         this.toggleClass(this._address, 'form__input_invalid', !valid);
     }
 
+    set payment(value: 'card' | 'cash') {
+        if (value === 'card') {
+            this.toggleCard(true);
+            this.toggleCash(false);
+        } else {
+            this.toggleCard(false);
+            this.toggleCash(true);
+        }
+    }
+
+    setValidation(errors: string[], fields: { payment: boolean; address: boolean }) {
+        this.errors = errors.join('<br>');
+        this.valid = errors.length === 0;
+        this.addressValid = fields.address;
+    }
+
     render(data?: Partial<IBuyer>) {
         if (data) {
             Object.assign(this as object, data);
-        } else {
-            this.payment = 'card';
-            this.address = this._address.value || '';
         }
         return this.container;
     }

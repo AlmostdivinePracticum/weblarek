@@ -3,11 +3,17 @@ import { IEvents } from '../base/Events';
 
 export class ModalView extends Component<{}> {
     private _content: HTMLElement;
+    private _handleEscape: (event: KeyboardEvent) => void;
 
     constructor(container: HTMLElement, private events: IEvents) {
         super(container);
-
         this._content = container.querySelector('.modal__content')!;
+
+        this._handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                this.close();
+            }
+        };
 
         const closeBtn = container.querySelector('.modal__close');
         if (closeBtn) {
@@ -24,12 +30,19 @@ export class ModalView extends Component<{}> {
     }
 
     open(content: HTMLElement) {
-        this._content.innerHTML = '';
-        this._content.appendChild(content);
-        this.container.classList.add('modal_active');
+        this._content.replaceChildren(content);
+        this.toggleModal(true);
+        document.addEventListener('keydown', this._handleEscape);
     }
 
     close() {
-        this.container.classList.remove('modal_active');
+        this.toggleModal(false);
+        document.removeEventListener('keydown', this._handleEscape);
+        // ОСТАВЛЕНО: событие для Escape и клика вне
+        this.events.emit('modal:close');
+    }
+
+    private toggleModal(state: boolean) {
+        this.toggleClass(this.container, 'modal_active', state);
     }
 }

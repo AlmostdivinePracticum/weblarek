@@ -11,14 +11,6 @@ export class CardCatalog extends CardView {
         });
     }
 
-    set price(value: number | null) {
-        if (value === null) {
-            this.setText(this._price, 'Бесценно');
-        } else {
-            this.setText(this._price, `${value} синапсов`);
-        }
-    }
-
     set id(value: string) {
         this.container.dataset.id = value;
     }

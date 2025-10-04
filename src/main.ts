@@ -13,6 +13,7 @@ import { CardCatalog } from './components/views/cards/CardCatalog';
 import { OrderForm } from './components/views/forms/OrderForm';
 import { ModalView } from './components/views/ModalView';
 import { AppPresenter } from './presenter/AppPresenter';
+import {Page} from "./components/views/Page.ts";
 
 // Создание экземпляров
 const events = new EventEmitter();
@@ -22,11 +23,15 @@ const buyer = new Buyer(events);
 const api = new Api(API_URL);
 const larekApi = new LarekAPI(api);
 
-// Создание компонентов представления
-const galleryElement = document.querySelector('.gallery') as HTMLElement;
-const gallery = new Gallery(galleryElement);
+const pageContainer = document.querySelector('.page') as HTMLElement;
+const page = new Page(pageContainer);
+const gallery = new Gallery(page.gallery);
+const headerBasket = page.basketButton;
 
-const headerBasket = document.querySelector('.header__basket') as HTMLElement;
+headerBasket.addEventListener('click', () => {
+    events.emit('header:basket-click');
+});
+
 const modalContainer = document.getElementById('modal-container') as HTMLElement;
 const modal = new ModalView(modalContainer, events);
 
@@ -38,7 +43,7 @@ const presenter = new AppPresenter(
     buyer,
     larekApi,
     gallery,
-    headerBasket,
+    page,
     modal
 );
 
